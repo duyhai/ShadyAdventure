@@ -1,9 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <sstream>
 #include "game.hpp"
-#include "rectangle.hpp"
 
 using namespace std;
 using namespace sf;
@@ -28,32 +28,8 @@ Game::Game()
 	    texture.setRepeated( true );
 	}
 
-	for ( int i = 0; i < tilemapWidth; i++ )
-	{
-		tilemap.emplace_back( tilemapHeight, nullptr );
-	}
-	addTile( new Rectangle( 150, 570, 300, 60, Color::White, &textures[0] ) );
-	addTile( new Rectangle( 30, 390, 60, 180, Color::White, &textures[1] ) );
-	addTile( new Rectangle( 420, 420, 120, 60, Color::White, &textures[2] ) );
-	player.setTexture( &textures[3] );
-}
-
-void Game::addTile( Tile* tile )
-{
-	int beginX = tile->left() / tileSize,
-		beginY = tile->top() / tileSize,
-		endX = tile->right() / tileSize,
-		endY = tile->bottom() / tileSize;
-	if ( beginY < 0 || endY > tilemapHeight ||
-			beginX < 0 || endX > tilemapWidth ) return;
-	for ( int i = beginX; i < endX; i++ )
-	{
-		for ( int j = beginY; j < endY; j++ )
-		{
-			tilemap[i][j] = tile;
-		}
-	}
-	tiles.emplace_back( tile );
+	tiles.emplace_back( new Tile( 50, 50, 300, 300, Color::White, &textures[0] ) );
+	player.setTexture( &textures[0] );
 }
 
 void Game::run()
@@ -95,14 +71,18 @@ void Game::inputPhase()
 
 	if ( Keyboard::isKeyPressed( Keyboard::Key::Escape ) ) 
 		running = false;
-	if ( Keyboard::isKeyPressed( Keyboard::Key::A ) )
-		player.setVelocity( -0.1f, player.getVelocity().y );
-	else if ( Keyboard::isKeyPressed( Keyboard::Key::D ) )
-		player.setVelocity( 0.1f, player.getVelocity().y );
-	else 
-		player.setVelocity( 0.f, player.getVelocity().y );
+
+	player.setVelocity( 0.f, 0.f );
+	float spd = 0.2f;
+
+	if ( Keyboard::isKeyPressed( Keyboard::Key::A ) )		
+		player.setVelocity( -spd, player.getVelocity().y );
+	if ( Keyboard::isKeyPressed( Keyboard::Key::D ) )
+		player.setVelocity( spd, player.getVelocity().y );
 	if ( Keyboard::isKeyPressed( Keyboard::Key::W ) )
-		player.setVelocity( player.getVelocity().x, -0.5f );
+		player.setVelocity( player.getVelocity().x, -spd );
+	if ( Keyboard::isKeyPressed( Keyboard::Key::S ) )
+		player.setVelocity( player.getVelocity().x, spd );
 }
 
 void Game::updatePhase()
@@ -122,10 +102,10 @@ void Game::drawPhase()
 	// Draw everything
 	for ( auto& tile : tiles )
 	{
-		window.draw( *tile->getShape() );
+		window.draw( tile->getShape() );
 	}
-	window.draw( *player.getShape() );
-	window.draw( *player.getHead() );
+	window.draw( player.getShape() );
+	window.draw( player.getHead() );
 
 	window.display();
 }
