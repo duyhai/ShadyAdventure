@@ -1,0 +1,9 @@
+X	Grids		M
+	Update		M
+	Collision	H
+	Camera		M
+	Slopes		H
+	Player		E
+	Enemies		E
+	AI			M
+X	Clock		E

@@ -1,0 +1,221 @@
+#include <iostream>
+
+using std::cin;
+using std::cout;
+using std::endl;
+
+struct Flag
+{
+  	Flag( char _sf, string _lf, bool _param ):sf( _sf ), lf( _lf ), param( _param ){
+        }
+   	char sf;
+   	string lf;
+   	bool param;
+};
+
+enum States
+{
+	START, FLAGS, LONGFLAGS, SHORTFLAGS, AFTERSHORTFLAG, FLAGPARAM, PARAM
+};
+
+void LoadFlags( const std::istream& is, std::vector<Flag*>& v, const int flagnum )
+{
+    string input;
+    std::vector<std::string> tokens;
+    for( int i = 0; i < flagnum; i++ )
+    {
+        // If invalid input skip
+        if( !getline( cin, input ) ) continue;
+        boost::split(tokens, input, boost::is_any_of(":"));
+        if( tokens.size() < 2 ) continue;
+
+        bool canparam = tokens[0][0] == '*';
+        char sf = canparam ? tokens[0][1] : tokens[0][0];
+        v.emplace_back(new Flag(sf, tokens[1], canparam));
+    }
+}
+
+Flag* FindFlag( const char c, const std::vector<Flag *> &v )
+{
+    auto result = std::find_if( v.begin(), v.end(), [c]( const Flag *f ) 
+        {
+            return f->sf == c;
+        });
+    if ( result == v.end() ) return NULL;
+    else return *result;
+}
+
+void HandleInput( std::ostream &os, const string& input, const std::vector<Flag *> &v )
+{
+    States state = START;
+    string currentparam;    
+    string toprocess = input + " ";
+    for( auto c : toprocess )
+    {
+        switch( state )
+        {
+            case START:
+                
+                if( c == '-' ) 
+                {
+                    state = FLAGS; 
+                }  
+                else
+                {
+                    currentparam += c;
+                    state = PARAM;   
+                }            
+                break;
+            case PARAM:
+                if( c == ' ' )
+                {
+                    os << "parameter: " << currentparam << endl;
+                    currentparam = "";
+                    state = START;
+                }
+                else
+                {
+                    currentparam += c;
+                }
+                break;
+            case FLAGS:
+                if( c == ' ' )
+                {
+                    currentparam = "";
+                    state = START;
+                }
+                else if( std::isalpha( c ) )
+                {
+                    currentparam += c;
+                    auto flag = FindFlag(c, v);
+                    if( flag == NULL )
+                    {
+                        os << endl << "No such flag: " << c;
+                    }
+                    else
+                    {
+                        os << endl << "flag: " << flag->lf;
+                    }
+                    state = SHORTFLAGS;
+                }
+                else if( c == '-' ) 
+                {
+                    currentparam = "";
+                    state = LONGFLAGS; 
+                }
+                break;
+            case LONGFLAGS:
+                if( c == ' ' )
+                {
+                    os << "flag: " << currentparam << endl;
+                    currentparam = "";
+                    state = START;
+                }
+                else if( c == '=' )
+                {
+                    os << "flag: " << currentparam;
+                    currentparam = "";
+                    state = FLAGPARAM;
+                }
+                else
+                {
+                    currentparam += c;
+                }
+                break;
+            case SHORTFLAGS:
+                if( std::isalpha( c ) )
+                {
+                    currentparam += c;
+                    auto flag = FindFlag(c, v);
+                    if( flag == NULL )
+                    {
+                        os << endl << "No such flag: " << c;
+                    }
+                    else
+                    {
+                        os << endl << "flag: " << flag->lf;
+                    }
+                }
+                else if( c == ' ' )
+                {
+                    if( currentparam != "" ){
+                        auto flag = FindFlag(currentparam[currentparam.length() - 1], v);
+                        if( flag->param )
+                        {
+                            currentparam = "";
+                            state = AFTERSHORTFLAG;
+                            break;
+                        }
+                    }
+                    os << endl;
+                    currentparam = "";
+                    state = START;
+                }
+                break;
+            case AFTERSHORTFLAG:
+                if( c == '-' ) 
+                {
+                    currentparam = "";
+                    state = FLAGS; 
+                }
+                else if( c == ' ' ) 
+                {
+                    currentparam = "";
+                    state = START; 
+                }
+                else
+                {
+                    currentparam += c;
+                    state = FLAGPARAM;
+                }
+                break;
+            case FLAGPARAM:
+                if( c == ' ' )
+                {
+                    os << " (value: " << currentparam << ")" << endl;
+                    currentparam = "";
+                    state = START;
+                }
+                else
+                {
+                    currentparam += c;
+                } 
+                break;
+            default: 
+                break;
+        }
+    }
+}
+
+int main()
+{	
+    int flagnum{ 0 };
+    string input;
+
+    // Get flag num
+    getline( cin, input );
+
+    try
+    {
+        flagnum = std::stoi( input );
+        cout << flagnum << endl;
+    }
+    catch( const std::invalid_argument& ia )
+    {
+        cout << "Expected number or error converting input: " << ia.what() << endl;
+        return 1;
+    }    
+    std::vector<Flag*> flagtypes;
+    flagtypes.reserve(flagnum);
+    LoadFlags( cin, flagtypes, flagnum );
+    
+    while( getline( cin, input ) )
+    {
+        HandleInput( cout, input, flagtypes );
+    }
+
+	for( Flag* f : flagtypes )
+	{
+		cout << f->sf << " - " << f->lf << endl;
+	}
+}
