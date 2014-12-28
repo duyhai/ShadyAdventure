@@ -3,7 +3,7 @@ X	Grids		M
 	Collision	H
 	Camera		M
 	Slopes		H
-	Player		E
+X	Player		E
 	Enemies		E
 	AI			M
 X	Clock		E

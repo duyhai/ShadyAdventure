@@ -21,11 +21,12 @@ public:
 	    mShape.setTextureRect( sf::IntRect( left(), top(), width, height ) );
 	}
 
-	sf::Shape* getShape() noexcept { return &mShape; }
+	sf::Shape* getShape()		 							noexcept { return &mShape; }
 	void setOutlineColor( const sf::Color &color ) 			noexcept { mShape.setOutlineColor( color ); }
-	sf::Color getOutlineColor() 							const noexcept { return mShape.getOutlineColor(); }
-	void setOutlineThickness( float thickness ) 		noexcept { mShape.setOutlineThickness( thickness ); }
-	float getOutlineThickness() 						const noexcept { return mShape.getOutlineThickness(); }
+	sf::Color getOutlineColor() const 						noexcept { return mShape.getOutlineColor(); }
+	void setOutlineThickness( float thickness ) 			noexcept { mShape.setOutlineThickness( thickness ); }
+	float getOutlineThickness() const 						noexcept { return mShape.getOutlineThickness(); }
+
 	float x() 		const noexcept { return mShape.getPosition().x; }
 	float y() 		const noexcept { return mShape.getPosition().y; }
 	float left() 	const noexcept { return x() - mShape.getSize().x / 2.f; }

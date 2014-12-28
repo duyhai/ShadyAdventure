@@ -5,10 +5,11 @@
 #include <vector>
 #include <memory>
 #include "rectangle.hpp"
+#include "player.hpp"
 
 constexpr int windowWidth{ 600 }, windowHeight{ 600 };
 constexpr int tilemapWidth{ 20 }, tilemapHeight{ 20 };
-constexpr int tileSize{ 30 };
+constexpr int tileSize{ 60 };
 constexpr float ftStep{ 1.f };
 using MilliSec = float;
 
@@ -25,6 +26,7 @@ private:
 	std::vector<sf::Texture> textures;
 	std::vector<std::unique_ptr<Tile>> tiles;
 	std::vector<std::vector<Tile*>> tilemap;
+	Player player{ 15, 15 };
 
 public:
 

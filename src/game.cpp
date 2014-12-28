@@ -32,9 +32,10 @@ Game::Game()
 	{
 		tilemap.emplace_back( tilemapHeight, nullptr );
 	}
-	addTile( new Rectangle( 150, 585, 300, 30, Color::White, &textures[0] ) );
-	addTile( new Rectangle( 15, 345, 30, 90, Color::White, &textures[1] ) );
-	addTile( new Rectangle( 430, 415, 60, 30, Color::White, &textures[2] ) );
+	addTile( new Rectangle( 150, 570, 300, 60, Color::White, &textures[0] ) );
+	addTile( new Rectangle( 30, 390, 60, 180, Color::White, &textures[1] ) );
+	addTile( new Rectangle( 420, 420, 120, 60, Color::White, &textures[2] ) );
+	player.setTexture( &textures[3] );
 }
 
 void Game::addTile( Tile* tile )
@@ -51,17 +52,6 @@ void Game::addTile( Tile* tile )
 		{
 			tilemap[i][j] = tile;
 		}
-	}
-	for ( int j = 0; j < tilemapHeight; j++ )
-	{
-		for ( int i = 0; i < tilemapWidth; i++ )
-		{
-			if ( tilemap[i][j] )
-				cout << 1;
-			else
-				cout << 0;
-		}
-		cout << endl;
 	}
 	tiles.emplace_back( tile );
 }
@@ -105,6 +95,14 @@ void Game::inputPhase()
 
 	if ( Keyboard::isKeyPressed( Keyboard::Key::Escape ) ) 
 		running = false;
+	if ( Keyboard::isKeyPressed( Keyboard::Key::A ) )
+		player.setVelocity( -0.1f, player.getVelocity().y );
+	else if ( Keyboard::isKeyPressed( Keyboard::Key::D ) )
+		player.setVelocity( 0.1f, player.getVelocity().y );
+	else 
+		player.setVelocity( 0.f, player.getVelocity().y );
+	if ( Keyboard::isKeyPressed( Keyboard::Key::W ) )
+		player.setVelocity( player.getVelocity().x, -0.5f );
 }
 
 void Game::updatePhase()
@@ -113,6 +111,7 @@ void Game::updatePhase()
 	for (; currentSlice >= ftStep; currentSlice -= ftStep )
 	{		
 		// Update
+		player.update( ftStep );
 
 		// Test collision
 	}
@@ -125,6 +124,8 @@ void Game::drawPhase()
 	{
 		window.draw( *tile->getShape() );
 	}
+	window.draw( *player.getShape() );
+	window.draw( *player.getHead() );
 
 	window.display();
 }

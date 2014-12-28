@@ -19,6 +19,8 @@ public:
 	void setPassable( bool passable ) noexcept { mPassable = passable; }
 	bool getPassable() noexcept { return mPassable; }
 
+	virtual float x() const noexcept = 0;
+	virtual float y() const noexcept = 0;
 	virtual float left() const noexcept = 0;
 	virtual float right() const noexcept = 0;
 	virtual float top() const noexcept = 0;
