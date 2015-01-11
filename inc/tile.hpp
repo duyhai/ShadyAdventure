@@ -24,6 +24,17 @@ public:
 	    mShape.setTextureRect( sf::IntRect( left(), top(), width, height ) );
 	}
 
+	void setTexture( const sf::Texture* tex )
+	{		
+		if ( tex == nullptr ) return;		
+	    mShape.setTexture( tex );
+	}
+
+	const sf::Texture* getTexture() noexcept
+	{
+		return mShape.getTexture();
+	}
+
 	sf::Shape& getShape()		 							noexcept { return mShape; }
 	void setOutlineColor( const sf::Color &color ) 			noexcept { mShape.setOutlineColor( color ); }
 	sf::Color getOutlineColor() const 						noexcept { return mShape.getOutlineColor(); }
@@ -40,10 +51,16 @@ public:
 	float top() 	const noexcept { return y() - mShape.getSize().y / 2.f; }
 	float bottom() 	const noexcept { return y() + mShape.getSize().y / 2.f; }
 
-	bool isIntersecting( Player& mA, Tile& mB ) noexcept
+	bool isIntersecting( Tile& mA ) noexcept
 	{
-		return mA.right() >= mB.left() && mA.left() <= mB.right() 
-				&& mA.bottom() >= mB.top() && mA.top() <= mB.bottom();
+		return mA.right() >= left() && mA.left() <= right() 
+				&& mA.bottom() >= top() && mA.top() <= bottom();
+	}
+
+	bool isIntersecting( Player& mA ) noexcept
+	{
+		return mA.right() >= left() && mA.left() <= right() 
+				&& mA.bottom() >= top() && mA.top() <= bottom();
 	}
 };
 

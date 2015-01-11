@@ -1,5 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include <sstream>
@@ -10,7 +12,9 @@ using namespace sf;
 
 Game::Game()
 {		
-	window.setFramerateLimit( 30 );
+	window.setFramerateLimit( 20 );
+	view.setViewport( sf::FloatRect( 0.f, 0.f, 1.f, 1.f ) );
+	window.setView( view );
 
 	// Populate
 	for ( int i = 0; i < 6; i++ )
@@ -28,8 +32,36 @@ Game::Game()
 	    texture.setRepeated( true );
 	}
 
-	tiles.emplace_back( new Tile( 50, 50, 300, 300, Color::White, &textures[0] ) );
+	ifstream ifs{ "data/map.txt" };
+	string input;
+	getline( ifs, input );
+	int x { stoi( input ) };
+	getline( ifs, input );
+	int y { stoi( input ) };
+	player.move( ( x + 0.5f ) * tileSize, ( y + 0.5f ) * tileSize );
+
+	int row{ 0 };
+	while ( getline( ifs, input ) )
+	{
+		int column{ 0 };
+		for ( char c:input )
+		{
+			Tile* tile = new Tile( ( column + 0.5f ) * tileSize, ( row + 0.5f ) * tileSize,
+									 tileSize, tileSize, Color::White, &textures[c-'0'] );
+			tile->setOutlineColor( Color::Black );
+			tile->setOutlineThickness( 2.f );
+			if ( c != '3' )
+			{
+				tile->setPassable( true );
+			}
+			tiles.emplace_back( tile );
+			column++;
+		}
+		row++;
+	}
 	player.setTexture( &textures[0] );
+	player.setOutlineColor( Color::Black );
+	player.setOutlineThickness( 2.f );
 }
 
 void Game::run()
@@ -89,12 +121,26 @@ void Game::updatePhase()
 {
 	currentSlice += lastFt;
 	for (; currentSlice >= ftStep; currentSlice -= ftStep )
-	{		
-		// Update
-		player.update( ftStep );
+	{	
+		for ( int i = 0; i < 2; i++ )
+		{
+			// Update
+			player.update( i, ftStep );
 
-		// Test collision
+			// Test collision
+			for ( auto& tile : tiles )
+			{
+				if ( !tile->getPassable() && tile->isIntersecting( player ) )
+				{
+					player.setHeldTileTexture( tile->getTexture() );
+					player.update( i, -ftStep );
+					break;
+				}
+			}			
+		}
 	}
+	view.setCenter( player.getShape().getPosition() );
+	window.setView( view );
 }
 
 void Game::drawPhase()

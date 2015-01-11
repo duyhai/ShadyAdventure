@@ -3,28 +3,44 @@
 
 #include <SFML/Graphics.hpp>
 
+constexpr int bwidth{ 20 }, bheight{ 30 }, hradius{ 8 };
+
 class Player
 {
 private:
 
-	sf::CircleShape head{ 10, 10 };
-	sf::RectangleShape body{ sf::Vector2f { 30, 40 } };
+	sf::CircleShape head{ hradius, 10 };
+	sf::ConvexShape body{ 4 };
 	sf::Vector2f velocity{ 0.f, 0.f };
+	const sf::Texture* heldTileTex{ nullptr };
+
+	void alignTexture()
+	{
+	    body.setTextureRect( sf::IntRect( left(), top() + head.getRadius() * 2.f, bwidth, bheight ) );
+	    head.setTextureRect( sf::IntRect( head.getPosition().x - hradius, head.getPosition().y - hradius, hradius*2, hradius*2 ) );		
+	}
 
 public:
 
 	Player( float mX, float mY )
 	{		
-		body.setPosition( mX, mY+10 );
-		body.setOrigin( 15, 20 );
-		head.setPosition( mX, mY-20 );
-		head.setOrigin( 10, 10 );
+		body.setPoint( 0, sf::Vector2f { bwidth * 0.5f, bheight * 0.5f } );
+		body.setPoint( 1, sf::Vector2f { bwidth * 0.25f, -bheight * 0.5f } );
+		body.setPoint( 2, sf::Vector2f { -bwidth * 0.25f, -bheight * 0.5f } );
+		body.setPoint( 3, sf::Vector2f { -bwidth * 0.5f, bheight * 0.5f } );
+		body.setPosition( mX, mY+bheight * 0.25f );
+		head.setPosition( mX, mY - bheight * 0.25f - hradius );
+		head.setOrigin( hradius, 10 );
 	}
 
-	void aligTexture()
+	void setHeldTileTexture( const sf::Texture* tex )
+	{		
+		heldTileTex = tex;
+	}
+
+	const sf::Texture* getHeldTileTexture() noexcept
 	{
-	    body.setTextureRect( sf::IntRect( left(), top(), 30, 40 ) );
-	    head.setTextureRect( sf::IntRect( head.getPosition().x - 10, head.getPosition().y - 10, 20, 20 ) );		
+		return heldTileTex;
 	}
 
 	void setTexture( const sf::Texture* tex )
@@ -32,7 +48,7 @@ public:
 		if ( tex == nullptr ) return;		
 	    body.setTexture( tex );
 	    head.setTexture( tex );
-	    aligTexture();
+	    alignTexture();
 	}
 
 	const sf::Texture* getTexture() noexcept
@@ -44,10 +60,12 @@ public:
 	{
 		body.move( mX, mY );
 		head.move( 0, mY );
-		int offset = -velocity.x * 10;
+		int offset = velocity.x * 20;
+		body.setPoint( 1, { bwidth * 0.25f + offset, -bheight * 0.5f } );
+		body.setPoint( 2, { -bwidth * 0.25f + offset, -bheight * 0.5f } );
 		head.setPosition( body.getPosition().x + offset, head.getPosition().y );
 
-		aligTexture();
+		alignTexture();
 	}
 
 	void setVelocity( float x, float y ) noexcept
@@ -71,14 +89,17 @@ public:
 
 	float x() 		const noexcept { return body.getPosition().x; }
 	float y() 		const noexcept { return body.getPosition().y; }
-	float left() 	const noexcept { return x() - body.getSize().x / 2.f; }
-	float right() 	const noexcept { return x() + body.getSize().x / 2.f; }
-	float top() 	const noexcept { return y() - body.getSize().y / 2.f; }
-	float bottom() 	const noexcept { return y() + body.getSize().y / 2.f; }
+	float left() 	const noexcept { return x() - bwidth / 2.f; }
+	float right() 	const noexcept { return x() + bwidth / 2.f; }
+	float top() 	const noexcept { return y() - bheight / 2.f - head.getRadius() * 2.f; }
+	float bottom() 	const noexcept { return y() + bheight / 2.f; }
 
-	void update( float time )
+	void update( int phase, float time )
 	{
-		move( velocity.x*time, velocity.y*time );
+		if ( phase == 0 )
+			move( velocity.x*time, 0 );
+		if ( phase == 1 )
+			move( 0, velocity.y*time );
 	}
 };
 

@@ -17,6 +17,7 @@ class Game
 private:
 	// These members are related to the control of the game.
 	sf::RenderWindow window{ { windowWidth, windowHeight }, "Shady Platformer" };
+	sf::View view{ sf::FloatRect( 0, 0, windowWidth, windowHeight ) };
 	MilliSec lastFt{ 0.f }, currentSlice{ 0.f }; 
 	sf::Clock clock;
 	bool running{ false };
@@ -24,7 +25,7 @@ private:
 	// Game entities.
 	std::vector<sf::Texture> textures;
 	std::vector<std::unique_ptr<Tile>> tiles;
-	Player player{ 50, 50 };
+	Player player{ 0, 0 };
 
 public:
 
