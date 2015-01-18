@@ -1,10 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <vector>
 #include <algorithm>
 #include <sstream>
+#include "bounded.hpp"
 #include "game.hpp"
+#include <utility>
 
 using namespace std;
 using namespace sf;
@@ -26,6 +27,12 @@ bool linesIntersect( sf::Vector2f x1, sf::Vector2f x2, sf::Vector2f y1, sf::Vect
 	float 	s = ( 1/d ) * ( ( x00 - x10 ) * y01 - ( y00 - y10 ) * x01 ),
 			t = -( 1/d ) * ( -( x00 - x10 ) * y11 + ( y00 - y10 ) * x11 );
 	return ( s <= 1.f && t <= 1.f && s >= 0.f && t >= 0.f );
+}
+
+pair<pair<int, int>, pair<int, int>> convertToBounds( Bounded& rect, int tileSize )
+{
+	return { { rect.left() / tileSize, rect.right() / tileSize + 1 },
+			 { rect.top() / tileSize, rect.bottom() / tileSize + 1 } };
 }
 
 Game::Game()
@@ -55,15 +62,24 @@ Game::Game()
 	// Map	
 	ifstream ifs{ "data/map.txt" };
 	string input;
+	getline( ifs, input );
+	int x{ stoi( input ) };
+	getline( ifs, input );
+	int y{ stoi( input ) };
 
 	int row{ 0 };
 	while ( getline( ifs, input ) )
 	{
+		tiles.emplace_back();
 		int column{ -1 };
 		for ( char c:input )
 		{
 			column++;
-			if ( c == '-' ) continue;
+			if ( c == '-' ) 
+			{
+				tiles[row].emplace_back();				
+				continue;
+			}
 
 			Tile* tile = new Tile( ( column + 0.5f ) * tileSize, ( row + 0.5f ) * tileSize,
 									 tileSize, tileSize, Color::White, &textures[c-'0'] );
@@ -73,15 +89,21 @@ Game::Game()
 			{
 				tile->setPassable( true );
 			}
-			tiles.emplace_back( tile );
+			tiles[row].emplace_back( tile );
 		}
+		for ( int i = ++column; i < x; i++ ) tiles[row].emplace_back( nullptr );
 		row++;
 	}
+	for ( int i = row; i < y; i++ ) tiles.emplace_back( x );
 
 	// Player
-	int playernum{ 0 };
-	for ( int tilenum = tiles.size(); !tiles[playernum]->getPassable(); playernum = rand() % tilenum );
-	auto playerpos = tiles[playernum]->getShape().getPosition();
+	int playerX{ 0 }, playerY{ 0 };
+	while ( tiles[playerY][playerX].get() == nullptr || !tiles[playerY][playerX]->getPassable() )
+	{
+		playerX = rand() % x;
+		playerY = rand() % y;
+	}
+	auto playerpos = tiles[playerY][playerX]->getShape().getPosition();
 	player.move( playerpos.x, playerpos.y );
 	player.setTexture( &textures[0] );
 	player.setOutlineColor( { 72, 113, 28 } );
@@ -90,14 +112,20 @@ Game::Game()
 	// Enemies
 	for ( int i = 0; i < 5; i++ )
 	{
-		int num{ 0 };
-		for ( int tilenum = tiles.size(); !tiles[num]->getPassable() && num != playernum; num = rand() % tilenum );
-		auto pos = tiles[num]->getShape().getPosition();
+		int tileX{ 0 }, tileY{ 0 };
+		while ( tiles[tileY][tileX].get() == nullptr || !tiles[tileY][tileX]->getPassable() || 
+				( tileX == playerX && tileY == playerY ) )
+		{
+			tileX = rand() % x;
+			tileY = rand() % y;
+		}
+		auto pos = tiles[tileY][tileX]->getShape().getPosition();
 		enemies.emplace_back( pos.x, pos.y );
 		enemies[i].setTexture( &textures[std::rand() % 5 + 1] );
 		enemies[i].setOutlineColor( { 80, 5, 5 } );
 		enemies[i].setOutlineThickness( 2.f );
 	}
+	cout << tiles.size() << " " << tiles[0].size() << endl;
 }
 
 void Game::run()
@@ -177,26 +205,44 @@ void Game::updatePhase()
 			}
 
 			// Test collision
-			for ( auto& tile : tiles )
+			auto bounds = convertToBounds( player, tileSize );
+			bool brkloop = false;
+			for ( int j = bounds.second.first; j < bounds.second.second; j++ )
 			{
-				if ( !tile->getPassable() && tile->isIntersecting( player ) )
+				for ( int k = bounds.first.first; k < bounds.first.second; k++ )
 				{
-					player.setHeldTileTexture( tile->getTexture() );
-					player.update( i, -ftStep );
-					break;
-				}				
+					auto& tile = tiles[j][k];
+					if ( tile.get() == nullptr ) continue;
+					if ( !tile->getPassable() && tile->isIntersecting( player ) )
+					{
+						player.setHeldTileTexture( tile->getTexture() );
+						player.update( i, -ftStep );
+						brkloop = true;
+						break;
+					}
+				}	
+				if ( brkloop ) break;
 			}	
 			for ( auto& enemy : enemies )
 			{
-				for ( auto& tile : tiles )
+				bounds = convertToBounds( enemy, tileSize );
+				brkloop = false;
+				for ( int j = bounds.second.first; j < bounds.second.second; j++ )
 				{
-					if ( !tile->getPassable() && tile->isIntersecting( enemy ) )
+					for ( int k = bounds.first.first; k < bounds.first.second; k++ )
 					{
-						enemy.update( i, -ftStep-0.001f );
-						break;
-					}				
-				}
-			}		
+						auto& tile = tiles[j][k];
+						if ( tile.get() == nullptr ) continue;
+						if ( !tile->getPassable() && tile->isIntersecting( enemy ) )
+						{
+							enemy.update( i, -ftStep );
+							brkloop = true;
+							break;
+						}
+					}	
+					if ( brkloop ) break;			
+				}	
+			}	
 		}
 
 		for ( auto& enemy : enemies )
@@ -206,14 +252,23 @@ void Game::updatePhase()
 				bool tofire = true;
 				auto enemypos = enemy.getShape().getPosition();
 				auto playerpos = player.getShape().getPosition();
-				for ( auto& tile : tiles )
+				auto mid = (playerpos + enemypos) * 0.5f;
+				Tile scanarea{ mid.x, mid.y, abs( enemypos.x - playerpos.x ), abs( enemypos.y - playerpos.y ) };
+				auto bounds = convertToBounds( scanarea , tileSize );
+				bool brkloop = false;
+				for ( int j = bounds.second.first; j < bounds.second.second; j++ )
 				{
-					if ( tile->getPassable() ) continue;
-					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->right(), tile->top() } );
-					tofire &= !linesIntersect( enemypos, playerpos, { tile->right(), tile->top() }, { tile->right(), tile->bottom() } );
-					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->bottom() }, { tile->right(), tile->bottom() } );
-					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->left(), tile->bottom() } );
-					if ( !tofire ) break;
+					for ( int k = bounds.first.first; k < bounds.first.second; k++ )
+					{
+						auto& tile = tiles[j][k];
+						if ( tile.get() == nullptr || tile->getPassable() ) continue;
+						tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->right(), tile->top() } );
+						tofire &= !linesIntersect( enemypos, playerpos, { tile->right(), tile->top() }, { tile->right(), tile->bottom() } );
+						tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->bottom() }, { tile->right(), tile->bottom() } );
+						tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->left(), tile->bottom() } );
+						if ( !tofire ) { brkloop = true; break; }
+					}	
+					if ( brkloop ) break;
 				}
 				if ( tofire )
 				{
@@ -235,9 +290,14 @@ void Game::updatePhase()
 void Game::drawPhase()
 {
 	// Draw everything
-	for ( auto& tile : tiles )
+	for ( auto& tilerows : tiles )
 	{
-		window.draw( tile->getShape() );
+		if ( tilerows.size() == 0 ) continue;
+		for ( auto& tile : tilerows )
+		{
+			if ( tile.get() == nullptr ) continue;
+			window.draw( tile->getShape() );
+		}
 	}
 	for ( auto& enemy : enemies )
 	{

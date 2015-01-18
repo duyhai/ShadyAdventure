@@ -2,10 +2,11 @@
 #define INC_CHARACTER_H
 
 #include <SFML/Graphics.hpp>
+#include "bounded.hpp"
 
 constexpr int bwidth{ 20 }, bheight{ 30 }, hradius{ 8 };
 
-class Character
+class Character: public Bounded
 {
 private:
 

@@ -26,11 +26,11 @@ private:
 	bool 				running{ false };
 
 	// Game entities.
-	std::vector<sf::Texture> 			textures;
-	std::vector<Enemy> 					enemies;
-	std::vector<Bullet>					bullets;
-	std::vector<std::unique_ptr<Tile>> 	tiles;
-	Player 								player{ 0, 0 };
+	std::vector<sf::Texture> 							textures;
+	std::vector<Enemy> 									enemies;
+	std::vector<Bullet>									bullets;
+	std::vector<std::vector<std::unique_ptr<Tile>>> 	tiles;
+	Player 												player{ 0, 0 };
 
 	void inputPhase();
 

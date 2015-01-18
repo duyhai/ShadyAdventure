@@ -4,8 +4,9 @@
 #include <memory>
 #include <SFML/Graphics.hpp>
 #include "character.hpp"
+#include "bounded.hpp"
 
-class Tile
+class Tile: public Bounded
 {
 private:
 	bool mPassable = false;	
