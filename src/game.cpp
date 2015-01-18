@@ -12,11 +12,13 @@ using namespace sf;
 
 Game::Game()
 {		
-	window.setFramerateLimit( 20 );
+	window.setFramerateLimit( 30 );
 	view.setViewport( sf::FloatRect( 0.f, 0.f, 1.f, 1.f ) );
 	window.setView( view );
 
 	// Populate
+
+	// Texture
 	for ( int i = 0; i < 6; i++ )
 	{
 		textures.emplace_back();
@@ -32,6 +34,7 @@ Game::Game()
 	    texture.setRepeated( true );
 	}
 
+	// Map	
 	ifstream ifs{ "data/map.txt" };
 	string input;
 	getline( ifs, input );
@@ -59,9 +62,20 @@ Game::Game()
 		}
 		row++;
 	}
+
+	// Player
 	player.setTexture( &textures[0] );
 	player.setOutlineColor( Color::Black );
 	player.setOutlineThickness( 2.f );
+
+	// Enemies
+	for ( int i = 0; i < 5; i++ )
+	{
+		enemies.emplace_back( std::rand() % 601, std::rand() % 601 );
+		enemies[i].setTexture( &textures[std::rand() % 5 + 1] );
+		enemies[i].setOutlineColor( Color::Black );
+		enemies[i].setOutlineThickness( 2.f );
+	}
 }
 
 void Game::run()
@@ -126,6 +140,10 @@ void Game::updatePhase()
 		{
 			// Update
 			player.update( i, ftStep );
+			for ( auto& enemy : enemies )
+			{
+				enemy.update( i, ftStep );
+			}
 
 			// Test collision
 			for ( auto& tile : tiles )
@@ -135,8 +153,20 @@ void Game::updatePhase()
 					player.setHeldTileTexture( tile->getTexture() );
 					player.update( i, -ftStep );
 					break;
+				}				
+			}	
+			for ( auto& enemy : enemies )
+			{
+				for ( auto& tile : tiles )
+				{
+					if ( !tile->getPassable() && tile->isIntersecting( enemy ) )
+					{
+						enemy.setHeldTileTexture( tile->getTexture() );
+						enemy.update( i, -ftStep-0.001f );
+						break;
+					}				
 				}
-			}			
+			}		
 		}
 	}
 	view.setCenter( player.getShape().getPosition() );
@@ -149,6 +179,11 @@ void Game::drawPhase()
 	for ( auto& tile : tiles )
 	{
 		window.draw( tile->getShape() );
+	}
+	for ( auto& enemy : enemies )
+	{
+		window.draw( enemy.getShape() );
+		window.draw( enemy.getHead() );
 	}
 	window.draw( player.getShape() );
 	window.draw( player.getHead() );

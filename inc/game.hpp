@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include "player.hpp"
+#include "enemy.hpp"
 #include "tile.hpp"
 
 constexpr int windowWidth{ 600 }, windowHeight{ 600 };
@@ -24,6 +25,7 @@ private:
 
 	// Game entities.
 	std::vector<sf::Texture> textures;
+	std::vector<Enemy> enemies;
 	std::vector<std::unique_ptr<Tile>> tiles;
 	Player player{ 0, 0 };
 

@@ -94,7 +94,7 @@ public:
 	float top() 	const noexcept { return y() - bheight / 2.f - head.getRadius() * 2.f; }
 	float bottom() 	const noexcept { return y() + bheight / 2.f; }
 
-	void update( int phase, float time )
+	virtual void update( int phase, float time )
 	{
 		if ( phase == 0 )
 			move( velocity.x*time, 0 );
