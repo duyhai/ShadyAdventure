@@ -1,4 +1,3 @@
-#include <SFML/Graphics.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -9,6 +8,25 @@
 
 using namespace std;
 using namespace sf;
+
+bool linesIntersect( sf::Vector2f x1, sf::Vector2f x2, sf::Vector2f y1, sf::Vector2f y2 )
+{
+	auto 	v1 = x2 - x1,
+			v2 = y2 - y1;
+
+	float	x00 = x1.x, y00 = x1.y,
+			x10 = y1.x, y10 = y1.y,
+			x01 = v1.x, y01 = v1.y,
+			x11 = v2.x, y11 = v2.y;
+
+	float d = x11 * y01 - x01 * y11;
+
+	if ( abs ( d ) < 0.001 ) return false;
+
+	float 	s = ( 1/d ) * ( ( x00 - x10 ) * y01 - ( y00 - y10 ) * x01 ),
+			t = -( 1/d ) * ( -( x00 - x10 ) * y11 + ( y00 - y10 ) * x11 );
+	return ( s <= 1.f && t <= 1.f && s >= 0.f && t >= 0.f );
+}
 
 Game::Game()
 {		
@@ -37,18 +55,16 @@ Game::Game()
 	// Map	
 	ifstream ifs{ "data/map.txt" };
 	string input;
-	getline( ifs, input );
-	int x { stoi( input ) };
-	getline( ifs, input );
-	int y { stoi( input ) };
-	player.move( ( x + 0.5f ) * tileSize, ( y + 0.5f ) * tileSize );
 
 	int row{ 0 };
 	while ( getline( ifs, input ) )
 	{
-		int column{ 0 };
+		int column{ -1 };
 		for ( char c:input )
 		{
+			column++;
+			if ( c == '-' ) continue;
+
 			Tile* tile = new Tile( ( column + 0.5f ) * tileSize, ( row + 0.5f ) * tileSize,
 									 tileSize, tileSize, Color::White, &textures[c-'0'] );
 			tile->setOutlineColor( Color::Black );
@@ -58,22 +74,28 @@ Game::Game()
 				tile->setPassable( true );
 			}
 			tiles.emplace_back( tile );
-			column++;
 		}
 		row++;
 	}
 
 	// Player
+	int playernum{ 0 };
+	for ( int tilenum = tiles.size(); !tiles[playernum]->getPassable(); playernum = rand() % tilenum );
+	auto playerpos = tiles[playernum]->getShape().getPosition();
+	player.move( playerpos.x, playerpos.y );
 	player.setTexture( &textures[0] );
-	player.setOutlineColor( Color::Black );
+	player.setOutlineColor( { 72, 113, 28 } );
 	player.setOutlineThickness( 2.f );
 
 	// Enemies
 	for ( int i = 0; i < 5; i++ )
 	{
-		enemies.emplace_back( std::rand() % 601, std::rand() % 601 );
+		int num{ 0 };
+		for ( int tilenum = tiles.size(); !tiles[num]->getPassable() && num != playernum; num = rand() % tilenum );
+		auto pos = tiles[num]->getShape().getPosition();
+		enemies.emplace_back( pos.x, pos.y );
 		enemies[i].setTexture( &textures[std::rand() % 5 + 1] );
-		enemies[i].setOutlineColor( Color::Black );
+		enemies[i].setOutlineColor( { 80, 5, 5 } );
 		enemies[i].setOutlineThickness( 2.f );
 	}
 }
@@ -129,6 +151,8 @@ void Game::inputPhase()
 		player.setVelocity( player.getVelocity().x, -spd );
 	if ( Keyboard::isKeyPressed( Keyboard::Key::S ) )
 		player.setVelocity( player.getVelocity().x, spd );
+	if ( Keyboard::isKeyPressed( Keyboard::Key::Space ) )
+		player.setTexture( player.getHeldTileTexture() );
 }
 
 void Game::updatePhase()
@@ -137,6 +161,12 @@ void Game::updatePhase()
 	for (; currentSlice >= ftStep; currentSlice -= ftStep )
 	{	
 		player.setHeldTileTexture( nullptr );
+
+		for ( auto& bullet : bullets )
+		{
+			bullet.update( ftStep );
+		}
+
 		for ( int i = 0; i < 2; i++ )
 		{
 			// Update
@@ -168,6 +198,35 @@ void Game::updatePhase()
 				}
 			}		
 		}
+
+		for ( auto& enemy : enemies )
+		{
+			if ( enemy.ready2Fire() )
+			{
+				bool tofire = true;
+				auto enemypos = enemy.getShape().getPosition();
+				auto playerpos = player.getShape().getPosition();
+				for ( auto& tile : tiles )
+				{
+					if ( tile->getPassable() ) continue;
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->right(), tile->top() } );
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->right(), tile->top() }, { tile->right(), tile->bottom() } );
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->bottom() }, { tile->right(), tile->bottom() } );
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->left(), tile->bottom() } );
+					if ( !tofire ) break;
+				}
+				if ( tofire )
+				{
+					auto v = playerpos-enemypos;
+					float len = sqrt( v.x*v.x+v.y*v.y );
+					if ( abs( len ) > 0.001 )
+						v /= len;
+					v *= 0.3f;
+					bullets.emplace_back( 5, enemypos.x, enemypos.y, v, Color::Red, enemy.getTexture() );
+					enemy.fire();
+				}
+			}
+		}
 	}
 	view.setCenter( player.getShape().getPosition() );
 	window.setView( view );
@@ -185,28 +244,12 @@ void Game::drawPhase()
 		window.draw( enemy.getShape() );
 		window.draw( enemy.getHead() );
 	}
+	for ( auto& bullet : bullets )
+	{
+		window.draw( bullet.getShape() );
+	}
 	window.draw( player.getShape() );
 	window.draw( player.getHead() );
 
 	window.display();
-}
-
-bool linesIntersect( sf::Vector2f x1, sf::Vector2f x2, sf::Vector2f y1, sf::Vector2f y2 )
-{
-	auto 	v1 = x2 - x1,
-			v2 = y2 - y1;
-
-	float	x00 = x1.x, y00 = x1.y,
-			x10 = y1.x, y10 = y1.y,
-			x01 = v1.x, y01 = v1.y,
-			x11 = v2.x, y11 = v2.y;
-
-	float d = x11 * y01 - x01 * y11;
-
-	if ( abs ( d ) < 0.001 ) return false;
-
-	float 	s = ( 1/d ) * ( ( x00 - x10 ) * y01 - ( y00 - y10 ) * x01 ),
-			t = -( 1/d ) * ( ( x00 - x10 ) * y11 - ( y00 - y10 ) * x11 );
-
-	return ( s <= 1.f && t <= 1.f && s >= 0.f && t >= 0.f );
 }

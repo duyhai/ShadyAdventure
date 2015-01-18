@@ -11,7 +11,7 @@ private:
 
 	sf::CircleShape head{ hradius, 10 };
 	sf::ConvexShape body{ 4 };
-	sf::Vector2f velocity{ 0.f, 0.f };
+	sf::Vector2f mVelocity{ 0.f, 0.f };
 
 	void alignTexture()
 	{
@@ -29,7 +29,7 @@ public:
 		body.setPoint( 3, sf::Vector2f { -bwidth * 0.5f, bheight * 0.5f } );
 		body.setPosition( mX, mY+bheight * 0.25f );
 		head.setPosition( mX, mY - bheight * 0.25f - hradius );
-		head.setOrigin( hradius, 10 );
+		head.setOrigin( hradius, hradius );
 	}
 
 	void setTexture( const sf::Texture* tex )
@@ -45,11 +45,17 @@ public:
 		return body.getTexture();
 	}
 
+	void setPosition( float mX, float mY ) noexcept
+	{
+		auto& pos = getShape().getPosition();
+		move( mX - pos.x, mY - pos.y );
+	}
+
 	void move( float mX, float mY ) noexcept
 	{
 		body.move( mX, mY );
 		head.move( 0, mY );
-		int offset = velocity.x * 20;
+		int offset = mVelocity.x * 20;
 		body.setPoint( 1, { bwidth * 0.25f + offset, -bheight * 0.5f } );
 		body.setPoint( 2, { -bwidth * 0.25f + offset, -bheight * 0.5f } );
 		head.setPosition( body.getPosition().x + offset, head.getPosition().y );
@@ -59,13 +65,13 @@ public:
 
 	void setVelocity( float x, float y ) noexcept
 	{
-		velocity.x = x;
-		velocity.y = y;
+		mVelocity.x = x;
+		mVelocity.y = y;
 	}
 
 	const sf::Vector2f& getVelocity(  ) noexcept
 	{
-		return velocity;
+		return mVelocity;
 	}
 
 	sf::Shape& getHead()  									noexcept { return head; }
@@ -86,9 +92,9 @@ public:
 	virtual void update( int phase, float time )
 	{
 		if ( phase == 0 )
-			move( velocity.x*time, 0 );
+			move( mVelocity.x*time, 0 );
 		if ( phase == 1 )
-			move( 0, velocity.y*time );
+			move( 0, mVelocity.y*time );
 	}
 };
 

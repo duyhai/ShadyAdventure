@@ -7,7 +7,7 @@
 class Enemy: public Character
 {
 private:
-	int fireRate{ 60 }, firePhase{ 0 };
+	int fireRate{ 1200 }, firePhase{ 0 };
 	int walkRate{ 900 }, walkPhase{ 0 };
 
 public:
@@ -29,11 +29,16 @@ public:
 
 		firePhase++;
 		walkPhase++;
+	}
 
-		if ( firePhase % fireRate == 0 )
-		{
-			// shoot		
-		}
+	bool ready2Fire()
+	{
+		return firePhase > fireRate;
+	}
+
+	void fire()
+	{
+		firePhase = 0;
 	}
 };
 

@@ -1,11 +1,14 @@
 X	Grids		M
 X	Update		M
+	GenerateMap	H
+X	GenerateE	M
+X	Bullets		E
 X	Collision	H
 	BCollision	H
 X	Camera		M
 X	Player		E
 X	Enemies		E
-	Shoot		E
+X	Shoot		E
 	Win			E
 	Lose		E
 X	AI			M
@@ -13,11 +16,12 @@ X	Clock		E
 
 Kill different texture
 
-Bouncebullet
-Unpassable
-Bulletsplit
 Floor
+Bouncebullet
+Bulletsplit
+Unpassable
 Invis
 Wallpass
 
 Change walls
+Drawable
