@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <SFML/Graphics.hpp>
-#include "player.hpp"
+#include "character.hpp"
 
 class Tile
 {
@@ -57,7 +57,7 @@ public:
 				&& mA.bottom() >= top() && mA.top() <= bottom();
 	}
 
-	bool isIntersecting( Player& mA ) noexcept
+	bool isIntersecting( Character& mA ) noexcept
 	{
 		return mA.right() >= left() && mA.left() <= right() 
 				&& mA.bottom() >= top() && mA.top() <= bottom();

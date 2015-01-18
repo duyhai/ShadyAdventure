@@ -1,19 +1,23 @@
 X	Grids		M
-	Update		M
-	Collision	H
+X	Update		M
+X	Collision	H
+	BCollision	H
 X	Camera		M
 X	Player		E
-	Enemies		E
-	AI			M
+X	Enemies		E
+	Shoot		E
+	Win			E
+	Lose		E
+X	AI			M
 X	Clock		E
 
 Kill different texture
 
-Wallpass
 Bouncebullet
 Unpassable
 Bulletsplit
-Invis
 Floor
+Invis
+Wallpass
 
 Change walls
