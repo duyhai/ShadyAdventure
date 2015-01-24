@@ -34,6 +34,12 @@ private:
 
 	void inputPhase();
 
+	Tile* collideBounded( Bounded& bounded );
+
+	void enemyAI();
+
+	void updateActors( float ftStep );
+
 	void updatePhase();
 
 	void drawPhase();

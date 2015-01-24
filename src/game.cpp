@@ -6,34 +6,11 @@
 #include "bounded.hpp"
 #include "game.hpp"
 #include <utility>
+#include "mapgen.hpp"
+#include "helper.hpp"
 
 using namespace std;
 using namespace sf;
-
-bool linesIntersect( sf::Vector2f x1, sf::Vector2f x2, sf::Vector2f y1, sf::Vector2f y2 )
-{
-	auto 	v1 = x2 - x1,
-			v2 = y2 - y1;
-
-	float	x00 = x1.x, y00 = x1.y,
-			x10 = y1.x, y10 = y1.y,
-			x01 = v1.x, y01 = v1.y,
-			x11 = v2.x, y11 = v2.y;
-
-	float d = x11 * y01 - x01 * y11;
-
-	if ( abs ( d ) < 0.001 ) return false;
-
-	float 	s = ( 1/d ) * ( ( x00 - x10 ) * y01 - ( y00 - y10 ) * x01 ),
-			t = -( 1/d ) * ( -( x00 - x10 ) * y11 + ( y00 - y10 ) * x11 );
-	return ( s <= 1.f && t <= 1.f && s >= 0.f && t >= 0.f );
-}
-
-pair<pair<int, int>, pair<int, int>> convertToBounds( Bounded& rect, int tileSize )
-{
-	return { { rect.left() / tileSize, rect.right() / tileSize + 1 },
-			 { rect.top() / tileSize, rect.bottom() / tileSize + 1 } };
-}
 
 Game::Game()
 {		
@@ -61,40 +38,9 @@ Game::Game()
 
 	// Map	
 	ifstream ifs{ "data/map.txt" };
-	string input;
-	getline( ifs, input );
-	int x{ stoi( input ) };
-	getline( ifs, input );
-	int y{ stoi( input ) };
-
-	int row{ 0 };
-	while ( getline( ifs, input ) )
-	{
-		tiles.emplace_back();
-		int column{ -1 };
-		for ( char c:input )
-		{
-			column++;
-			if ( c == '-' ) 
-			{
-				tiles[row].emplace_back();				
-				continue;
-			}
-
-			Tile* tile = new Tile( ( column + 0.5f ) * tileSize, ( row + 0.5f ) * tileSize,
-									 tileSize, tileSize, Color::White, &textures[c-'0'] );
-			tile->setOutlineColor( Color::Black );
-			tile->setOutlineThickness( 2.f );
-			if ( c != '3' )
-			{
-				tile->setPassable( true );
-			}
-			tiles[row].emplace_back( tile );
-		}
-		for ( int i = ++column; i < x; i++ ) tiles[row].emplace_back( nullptr );
-		row++;
-	}
-	for ( int i = row; i < y; i++ ) tiles.emplace_back( x );
+	createMap( ifs, tiles, textures );
+	auto 	x = tiles[0].size(),
+			y = tiles.size();
 
 	// Player
 	int playerX{ 0 }, playerY{ 0 };
@@ -125,7 +71,6 @@ Game::Game()
 		enemies[i].setOutlineColor( { 80, 5, 5 } );
 		enemies[i].setOutlineThickness( 2.f );
 	}
-	cout << tiles.size() << " " << tiles[0].size() << endl;
 }
 
 void Game::run()
@@ -183,105 +128,104 @@ void Game::inputPhase()
 		player.setTexture( player.getHeldTileTexture() );
 }
 
-void Game::updatePhase()
+Tile* Game::collideBounded( Bounded& bounded )
 {
-	currentSlice += lastFt;
-	for (; currentSlice >= ftStep; currentSlice -= ftStep )
-	{	
-		player.setHeldTileTexture( nullptr );
-
-		for ( auto& bullet : bullets )
+	auto bounds = convertToBounds( bounded, tileSize );
+	for ( int j = bounds.second.first; j < bounds.second.second; j++ )
+	{
+		for ( int k = bounds.first.first; k < bounds.first.second; k++ )
 		{
-			bullet.update( ftStep );
+			auto& tile = tiles[j][k];
+			if ( tile.get() == nullptr ) continue;
+			if ( !tile->getPassable() && tile->isIntersecting( bounded ) )
+			{
+				return tile.get();
+			}
+		}	
+	}	
+	return nullptr;
+}
+
+void Game::updateActors( float ftStep )
+{
+	player.setHeldTileTexture( nullptr );
+
+	for ( auto& bullet : bullets )
+	{
+		bullet.update( ftStep );
+	}
+
+	for ( int i = 0; i < 2; i++ )
+	{
+		// Update
+		player.update( i, ftStep );
+		for ( auto& enemy : enemies )
+		{
+			enemy.update( i, ftStep );
 		}
 
-		for ( int i = 0; i < 2; i++ )
+		// Test collision
+		if ( Tile* tile = collideBounded( player ) )
 		{
-			// Update
-			player.update( i, ftStep );
-			for ( auto& enemy : enemies )
-			{
-				enemy.update( i, ftStep );
-			}
+			player.setHeldTileTexture( tile->getTexture() );
+			player.update( i, -ftStep );
+		}	
+		for ( auto& enemy : enemies )
+		{
+			if ( collideBounded( enemy ) )
+				enemy.update( i, -ftStep );
+		}	
+	}
+}
 
-			// Test collision
-			auto bounds = convertToBounds( player, tileSize );
+void Game::enemyAI()
+{
+	for ( auto& enemy : enemies )
+	{
+		if ( enemy.ready2Fire() )
+		{
+			bool tofire = true;
+			auto enemypos = enemy.getShape().getPosition();
+			auto playerpos = player.getShape().getPosition();
+			auto mid = (playerpos + enemypos) * 0.5f;
+			Tile scanarea{ mid.x, mid.y, abs( enemypos.x - playerpos.x ), abs( enemypos.y - playerpos.y ) };
+			auto bounds = convertToBounds( scanarea , tileSize );
 			bool brkloop = false;
 			for ( int j = bounds.second.first; j < bounds.second.second; j++ )
 			{
 				for ( int k = bounds.first.first; k < bounds.first.second; k++ )
 				{
 					auto& tile = tiles[j][k];
-					if ( tile.get() == nullptr ) continue;
-					if ( !tile->getPassable() && tile->isIntersecting( player ) )
-					{
-						player.setHeldTileTexture( tile->getTexture() );
-						player.update( i, -ftStep );
-						brkloop = true;
-						break;
-					}
+					if ( tile.get() == nullptr || tile->getPassable() ) continue;
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->right(), tile->top() } );
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->right(), tile->top() }, { tile->right(), tile->bottom() } );
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->bottom() }, { tile->right(), tile->bottom() } );
+					tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->left(), tile->bottom() } );
+					if ( !tofire ) { brkloop = true; break; }
 				}	
 				if ( brkloop ) break;
-			}	
-			for ( auto& enemy : enemies )
+			}
+			if ( tofire )
 			{
-				bounds = convertToBounds( enemy, tileSize );
-				brkloop = false;
-				for ( int j = bounds.second.first; j < bounds.second.second; j++ )
-				{
-					for ( int k = bounds.first.first; k < bounds.first.second; k++ )
-					{
-						auto& tile = tiles[j][k];
-						if ( tile.get() == nullptr ) continue;
-						if ( !tile->getPassable() && tile->isIntersecting( enemy ) )
-						{
-							enemy.update( i, -ftStep );
-							brkloop = true;
-							break;
-						}
-					}	
-					if ( brkloop ) break;			
-				}	
-			}	
-		}
-
-		for ( auto& enemy : enemies )
-		{
-			if ( enemy.ready2Fire() )
-			{
-				bool tofire = true;
-				auto enemypos = enemy.getShape().getPosition();
-				auto playerpos = player.getShape().getPosition();
-				auto mid = (playerpos + enemypos) * 0.5f;
-				Tile scanarea{ mid.x, mid.y, abs( enemypos.x - playerpos.x ), abs( enemypos.y - playerpos.y ) };
-				auto bounds = convertToBounds( scanarea , tileSize );
-				bool brkloop = false;
-				for ( int j = bounds.second.first; j < bounds.second.second; j++ )
-				{
-					for ( int k = bounds.first.first; k < bounds.first.second; k++ )
-					{
-						auto& tile = tiles[j][k];
-						if ( tile.get() == nullptr || tile->getPassable() ) continue;
-						tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->right(), tile->top() } );
-						tofire &= !linesIntersect( enemypos, playerpos, { tile->right(), tile->top() }, { tile->right(), tile->bottom() } );
-						tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->bottom() }, { tile->right(), tile->bottom() } );
-						tofire &= !linesIntersect( enemypos, playerpos, { tile->left(), tile->top() }, { tile->left(), tile->bottom() } );
-						if ( !tofire ) { brkloop = true; break; }
-					}	
-					if ( brkloop ) break;
-				}
-				if ( tofire )
-				{
-					auto v = playerpos-enemypos;
-					float len = sqrt( v.x*v.x+v.y*v.y );
-					if ( abs( len ) > 0.001 )
-						v /= len;
-					v *= 0.3f;
-					bullets.emplace_back( 5, enemypos.x, enemypos.y, v, Color::Red, enemy.getTexture() );
-					enemy.fire();
-				}
+				auto v = playerpos-enemypos;
+				float len = sqrt( v.x*v.x+v.y*v.y );
+				if ( abs( len ) > 0.001 )
+					v /= len;
+				v *= 0.3f;
+				bullets.emplace_back( 5, enemypos.x, enemypos.y, v, Color::Red, enemy.getTexture() );
+				enemy.fire();
 			}
 		}
+	}
+}
+
+void Game::updatePhase()
+{
+	currentSlice += lastFt;
+	for (; currentSlice >= ftStep; currentSlice -= ftStep )
+	{	
+		updateActors( ftStep );
+		enemyAI();		
 	}
 	view.setCenter( player.getShape().getPosition() );
 	window.setView( view );

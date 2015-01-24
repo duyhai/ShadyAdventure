@@ -52,13 +52,7 @@ public:
 	float top() 	const noexcept { return y() - mShape.getSize().y / 2.f; }
 	float bottom() 	const noexcept { return y() + mShape.getSize().y / 2.f; }
 
-	bool isIntersecting( Tile& mA ) noexcept
-	{
-		return mA.right() >= left() && mA.left() <= right() 
-				&& mA.bottom() >= top() && mA.top() <= bottom();
-	}
-
-	bool isIntersecting( Character& mA ) noexcept
+	bool isIntersecting( Bounded& mA ) noexcept
 	{
 		return mA.right() >= left() && mA.left() <= right() 
 				&& mA.bottom() >= top() && mA.top() <= bottom();
