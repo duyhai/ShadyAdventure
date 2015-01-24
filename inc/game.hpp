@@ -48,6 +48,8 @@ public:
 
 	Game();
 
+	void newGame();
+
 	void run();
 };
 

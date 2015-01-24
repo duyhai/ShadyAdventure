@@ -32,7 +32,6 @@ int wallsNearby( const std::vector<std::string>& map, int x, int y, int radius )
 	int populatedRegionY = endY - beginY + 1;
 	count += diameter * ( diameter - populatedRegionY );
 	count += ( diameter - populatedRegionX ) * populatedRegionY;
-	std::cout << count;
 	return count;
 }
 
@@ -96,6 +95,10 @@ std::vector<std::string> generateMap( int width, int height )
 		phase++;
 	}
 	int currphase = phase % 2;
+	for ( std::string& s : map[currphase] )
+		for ( char& c : s )
+			if ( c == '1' )
+				c = rand() % 5 + 1 + '0';
 	map[currphase].insert( map[currphase].begin(), std::to_string( height ) );
 	map[currphase].insert( map[currphase].begin(), std::to_string( width ) );
 	return map[currphase];

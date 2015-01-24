@@ -35,11 +35,20 @@ Game::Game()
 	    texture.setSmooth( true );
 	    texture.setRepeated( true );
 	}
+	newGame();
+}
+
+void Game::newGame()
+{	
+	//Clear
+	tiles.clear();
+	enemies.clear();
+	bullets.clear();
 
 	// Map	
 	//ifstream ifs{ "data/map.txt" };
 	//createMap( ifs, tiles, textures, tileSize );
-	auto generatedmap = generateMap( 50, 30 );
+	auto generatedmap = generateMap( 30, 20 );
 	cout << "generated" << endl;
 	createMap( generatedmap, tiles, textures, tileSize );
 	auto 	x = tiles[0].size(),
@@ -53,7 +62,7 @@ Game::Game()
 		playerY = rand() % y;
 	}
 	auto playerpos = tiles[playerY][playerX]->getShape().getPosition();
-	player.move( playerpos.x, playerpos.y );
+	player.setPosition( playerpos.x, playerpos.y );
 	player.setTexture( &textures[0] );
 	player.setOutlineColor( { 72, 113, 28 } );
 	player.setOutlineThickness( -1.5f );
@@ -74,6 +83,7 @@ Game::Game()
 		enemies[i].setOutlineColor( { 80, 5, 5 } );
 		enemies[i].setOutlineThickness( -1.5f );
 	}
+	std::cout << "ready" << std::endl;
 }
 
 void Game::run()
@@ -129,11 +139,15 @@ void Game::inputPhase()
 		player.setVelocity( player.getVelocity().x, spd );
 	if ( Keyboard::isKeyPressed( Keyboard::Key::Space ) )
 		player.setTexture( player.getHeldTileTexture() );
+	if ( Keyboard::isKeyPressed( Keyboard::Key::F12 ) )	
+		newGame();
 }
 
 Tile* Game::collideBounded( Bounded& bounded )
 {
 	auto bounds = convertToBounds( bounded, tileSize );
+	if ( bounds.second.first < 0 || tiles.size() < bounds.second.second ||
+		 bounds.first.first < 0 || tiles[0].size() < bounds.first.second ) return nullptr;
 	for ( int j = bounds.second.first; j < bounds.second.second; j++ )
 	{
 		for ( int k = bounds.first.first; k < bounds.first.second; k++ )

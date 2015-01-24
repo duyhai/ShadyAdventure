@@ -28,7 +28,7 @@ public:
 		body.setPoint( 1, sf::Vector2f { bwidth * 0.25f, -bheight * 0.5f } );
 		body.setPoint( 2, sf::Vector2f { -bwidth * 0.25f, -bheight * 0.5f } );
 		body.setPoint( 3, sf::Vector2f { -bwidth * 0.5f, bheight * 0.5f } );
-		body.setPosition( mX, mY+bheight * 0.25f );
+		body.setPosition( mX, mY + bheight * 0.25f );
 		head.setPosition( mX, mY - bheight * 0.25f - hradius );
 		head.setOrigin( hradius, hradius );
 	}
@@ -48,7 +48,9 @@ public:
 
 	void setPosition( float mX, float mY ) noexcept
 	{
-		auto& pos = getShape().getPosition();
+		int full = bheight + hradius * 2;
+		auto pos = static_cast<float>( bheight ) / full * getShape().getPosition() +
+					static_cast<float>( hradius * 2 ) / full * getHead().getPosition();
 		move( mX - pos.x, mY - pos.y );
 	}
 
