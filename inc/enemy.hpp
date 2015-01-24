@@ -18,9 +18,9 @@ public:
 		if ( walkPhase % walkRate == 0 && time >= 0 )
 		{
 			if ( phase == 0 )
-				setVelocity( static_cast<float>( std::rand() % 30 - 15 ) / 100.f, getVelocity().y );
+				setVelocity( static_cast<float>( std::rand() % 20 - 10 ) / 100.f, getVelocity().y );
 			if ( phase == 1 )
-				setVelocity( getVelocity().x, static_cast<float>( std::rand() % 30 - 15 ) / 100.f );			
+				setVelocity( getVelocity().x, static_cast<float>( std::rand() % 20 - 10 ) / 100.f );			
 		}
 
 		Character::update( phase, time );

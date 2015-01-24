@@ -4,7 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include "bounded.hpp"
 
-constexpr int bwidth{ 20 }, bheight{ 30 }, hradius{ 8 };
+constexpr int bwidth{ 14 }, bheight{ 20 }, hradius{ 6 };
 
 class Character: public Bounded
 {

@@ -10,7 +10,7 @@
 #include "bullet.hpp"
 
 constexpr int windowWidth{ 600 }, windowHeight{ 600 };
-constexpr int tileSize{ 60 };
+constexpr int tileSize{ 40 };
 constexpr float ftStep{ 1.f };
 using MilliSec = float;
 

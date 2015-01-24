@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <sstream>
 #include "bounded.hpp"
-#include "game.hpp"
 #include <utility>
 #include "mapgen.hpp"
+#include "game.hpp"
 #include "helper.hpp"
 
 using namespace std;
@@ -37,8 +37,11 @@ Game::Game()
 	}
 
 	// Map	
-	ifstream ifs{ "data/map.txt" };
-	createMap( ifs, tiles, textures );
+	//ifstream ifs{ "data/map.txt" };
+	//createMap( ifs, tiles, textures, tileSize );
+	auto generatedmap = generateMap( 50, 30 );
+	cout << "generated" << endl;
+	createMap( generatedmap, tiles, textures, tileSize );
 	auto 	x = tiles[0].size(),
 			y = tiles.size();
 
@@ -53,7 +56,7 @@ Game::Game()
 	player.move( playerpos.x, playerpos.y );
 	player.setTexture( &textures[0] );
 	player.setOutlineColor( { 72, 113, 28 } );
-	player.setOutlineThickness( 2.f );
+	player.setOutlineThickness( -1.5f );
 
 	// Enemies
 	for ( int i = 0; i < 5; i++ )
@@ -69,7 +72,7 @@ Game::Game()
 		enemies.emplace_back( pos.x, pos.y );
 		enemies[i].setTexture( &textures[std::rand() % 5 + 1] );
 		enemies[i].setOutlineColor( { 80, 5, 5 } );
-		enemies[i].setOutlineThickness( 2.f );
+		enemies[i].setOutlineThickness( -1.5f );
 	}
 }
 
@@ -114,7 +117,7 @@ void Game::inputPhase()
 		running = false;
 
 	player.setVelocity( 0.f, 0.f );
-	float spd = 0.2f;
+	float spd = 0.15f;
 
 	if ( Keyboard::isKeyPressed( Keyboard::Key::A ) )		
 		player.setVelocity( -spd, player.getVelocity().y );
@@ -211,8 +214,8 @@ void Game::enemyAI()
 				float len = sqrt( v.x*v.x+v.y*v.y );
 				if ( abs( len ) > 0.001 )
 					v /= len;
-				v *= 0.3f;
-				bullets.emplace_back( 5, enemypos.x, enemypos.y, v, Color::Red, enemy.getTexture() );
+				v *= 0.2f;
+				bullets.emplace_back( 3, enemypos.x, enemypos.y, v, Color::Red, enemy.getTexture() );
 				enemy.fire();
 			}
 		}
