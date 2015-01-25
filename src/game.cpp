@@ -48,7 +48,7 @@ void Game::newGame()
 	// Map	
 	//ifstream ifs{ "data/map.txt" };
 	//createMap( ifs, tiles, textures, tileSize );
-	auto generatedmap = generateMap( 30, 20 );
+	auto generatedmap = generateMap( 30, 60 );
 	cout << "generated" << endl;
 	createMap( generatedmap, tiles, textures, tileSize );
 	auto 	x = tiles[0].size(),

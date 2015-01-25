@@ -35,6 +35,32 @@ int wallsNearby( const std::vector<std::string>& map, int x, int y, int radius )
 	return count;
 }
 
+char averageWallsNearby( const std::vector<std::string>& map, int x, int y, int radius )
+{
+	if ( map.size() == 0 ) return 0;
+	int beginX{ std::max<int>( 0, x - radius ) },
+		endX{ std::min<int>( map[0].size() - 1, x + radius ) },
+		beginY{ std::max<int>( 0, y - radius ) },
+		endY{ std::min<int>( map.size() - 1, y + radius ) },
+		diameter{ 2 * radius + 1 },
+		num{ 0 };
+	float count{ 0.f };
+
+	for ( int i = beginY; i <= endY; i++ )
+	{			
+		for ( int j = beginX; j <= endX; j++ )
+		{
+			if ( map[i][j] != '0' )
+			{
+				count += map[i][j];
+				num++;
+			}
+		}
+	}
+
+	return std::round( count / num );
+}
+
 void printmap( const std::vector<std::string>& map )
 {
 	for ( const std::string& s : map )
@@ -99,6 +125,28 @@ std::vector<std::string> generateMap( int width, int height )
 		for ( char& c : s )
 			if ( c == '1' )
 				c = rand() % 5 + 1 + '0';
+	for ( int k = 0; k < 4; k++ )
+	{
+		int currphase = phase % 2;
+		for ( int i = 0; i < map[currphase].size(); i++ )
+		{
+			for ( int j = 0; j < map[currphase][i].length(); j++ )
+			{
+				char& c = map[currphase][i][j];
+				if ( c != '0' )
+				{
+					int val = c - '1';
+					float changewallch = 80.f * std::abs( val - 2 ) / 2;		
+					std::cout << c << " ";
+					map[( phase + 1 ) % 2][i][j] = rand() % 100 < changewallch ?  
+						c :						
+						averageWallsNearby( map[currphase], j, i, 3 );	
+				}			 
+			}
+		}
+		phase++;
+	}
+	currphase = phase % 2;
 	map[currphase].insert( map[currphase].begin(), std::to_string( height ) );
 	map[currphase].insert( map[currphase].begin(), std::to_string( width ) );
 	return map[currphase];
